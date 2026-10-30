@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optical Speed Radar - Auto Mode</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      color: #38bdf8;
+      font-size: 1.5rem;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-bottom: 15px;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #020617;
+    }
+
+    video { display: none; }
+    canvas { width: 100%; height: auto; display: block; }
+
+    .readout-card {
+      width: 100%;
+      max-width: 640px;
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 15px;
+      box-sizing: border-box;
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .speed-display {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #4ade80;
+    }
+
+    .config-group {
+      display: flex;
+      gap: 15px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .config-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .config-item input {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 4px;
+      width: 70px;
+      font-size: 1rem;
+    }
+
+    .controls {
+      margin-top: 15px;
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #ffffff;
+      background-color: #0284c7;
+    }
+    .btn-reset { background-color: #475569; flex: 0.4; }
+  </style>
+</head>
+<body>
+
+  <h1>OPTICAL SPEED RADAR</h1>
+  <div class="subtitle">Step 3: Auto-Motion Scanline Detection</div>
+
+  <video id="videoElement" autoplay playsinline></video>
+
+  <div class="video-container">
+    <canvas id="radarCanvas"></canvas>
+  </div>
+
+  <div class="readout-card">
+    <div class="config-group">
+      <div class="config-item">
+        <label for="distInput">Dist (Ft):</label>
+        <input type="number" id="distInput" value="20" min="1">
+      </div>
+      <div class="config-item">
+        <label for="sensitivityInput">Threshold:</label>
+        <input type="number" id="sensitivityInput" value="25" min="5" max="100">
+      </div>
+    </div>
+    <div>
+      <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Auto-Speed</div>
+      <div id="speedText" class="speed-display">0.0 MPH</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="startCamBtn" class="btn">Start Auto-Radar Camera</button>
+    <button id="resetBtn" class="btn btn-reset" style="display:none;">Reset</button>
+  </div>
+
+  <script>
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('radarCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const startCamBtn = document.getElementById('startCamBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const speedText = document.getElementById('speedText');
+    const distInput = document.getElementById('distInput');
+    const sensitivityInput = document.getElementById('sensitivityInput');
+
+    let streamActive = false;
+    let timeA = null;
+    let timeB = null;
+
+    // Previous frame pixel storage for motion comparison
+    let prevLineAData = null;
+    let prevLineBData = null;
+
+    startCamBtn.addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: 640, height: 480 }
+        });
+        video.srcObject = stream;
+        video.play();
+        streamActive = true;
+        
+        startCamBtn.style.display = 'none';
+        resetBtn.style.display = 'block';
+
+        video.addEventListener('loadedmetadata', () => {
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          drawLoop();
+        });
+      } catch (err) {
+        alert("Camera error: " + err.message);
+      }
+    });
+
+    resetBtn.addEventListener('click', resetRadar);
+
+    function resetRadar() {
+      timeA = null;
+      timeB = null;
+      prevLineAData = null;
+      prevLineBData = null;
+      speedText.textContent = "0.0 MPH";
+      speedText.style.color = "#4ade80";
+    }
+
+    function drawLoop() {
+      if (!streamActive) return;
+
+      // 1. Draw video frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const lineAY = Math.floor(canvas.height * 0.35);
+      const lineBY = Math.floor(canvas.height * 0.70);
+      const threshold = parseInt(sensitivityInput.value) || 25;
+
+      // Extract pixel row data for Line A and Line B (1 pixel high strip across width)
+      const frameA = ctx.getImageData(0, lineAY, canvas.width, 1).data;
+      const frameB = ctx.getImageData(0, lineBY, canvas.width, 1).data;
+
+      // Auto-detection logic for Line A (Start)
+      if (!timeA && prevLineAData) {
+        let diffSum = 0;
+        for (let i = 0; i < frameA.length; i += 4) {
+          // Compare Red channel difference from previous frame
+          diffSum += Math.abs(frameA[i] - prevLineAData[i]);
+        }
+        let avgDiff = diffSum / (frameA.length / 4);
+        if (avgDiff > threshold) {
+          timeA = performance.now();
+        }
+      }
+      prevLineAData = frameA;
+
+      // Auto-detection logic for Line B (Finish)
+      if (timeA && !timeB && prevLineBData) {
+        let diffSum = 0;
+        for (let i = 0; i < frameB.length; i += 4) {
+          diffSum += Math.abs(frameB[i] - prevLineBData[i]);
+        }
+        let avgDiff = diffSum / (frameB.length / 4);
+        if (avgDiff > threshold) {
+          timeB = performance.now();
+          calculateSpeed();
+        }
+      }
+      prevLineBData = frameB;
+
+      // Draw Line A (Cyan)
+      ctx.strokeStyle = timeA ? '#38bdf8' : 'rgba(56, 189, 248, 0.6)';
+      ctx.lineWidth = timeA ? 4 : 2;
+      ctx.beginPath(); ctx.moveTo(0, lineAY); ctx.lineTo(canvas.width, lineAY); ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(timeA ? 'LINE A [TRIGGERED]' : 'LINE A (START)', 15, lineAY - 8);
+
+      // Draw Line B (Green)
+      ctx.strokeStyle = timeB ? '#4ade80' : 'rgba(74, 222, 128, 0.6)';
+      ctx.lineWidth = timeB ? 4 : 2;
+      ctx.beginPath(); ctx.moveTo(0, lineBY); ctx.lineTo(canvas.width, lineBY); ctx.stroke();
+      ctx.fillStyle = '#4ade80';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(timeB ? 'LINE B [TRIGGERED]' : 'LINE B (FINISH)', 15, lineBY - 8);
+
+      requestAnimationFrame(drawLoop);
+    }
+
+    function calculateSpeed() {
+      const timeElapsedSeconds = (timeB - timeA) / 1000;
+      const distanceFeet = parseFloat(distInput.value) || 20;
+
+      // Sanity Check 1: Minimum time threshold (must take at least 0.05 seconds)
+      if (timeElapsedSeconds < 0.05) {
+        speedText.textContent = "GLITCH / TOO FAST";
+        speedText.style.color = "#ef4444";
+        return;
+      }
+
+      const fps = distanceFeet / timeElapsedSeconds;
+      const mph = (fps * 0.681818).toFixed(1);
+
+      // Sanity Check 2: Cap unrealistic speeds over 150 MPH
+      if (mph > 150) {
+        speedText.textContent = "OUT OF RANGE";
+        speedText.style.color = "#ef4444";
+        return;
+      }
+
+      speedText.textContent = `${mph} MPH`;
+      speedText.style.color = "#4ade80";
+    }
+  </script>
+</body>
+</html>
