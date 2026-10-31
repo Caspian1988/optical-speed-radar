@@ -191,6 +191,32 @@
       speedText.style.color = "#4ade80";
     }
 
+    function readScanBand(lineY) {
+      const bandHeight = Math.min(5, canvas.height);
+      const bandY = Math.max(0, Math.min(
+        canvas.height - bandHeight,
+        lineY - Math.floor(bandHeight / 2)
+      ));
+      return ctx.getImageData(0, bandY, canvas.width, bandHeight).data;
+    }
+
+    function hasMotion(currentFrame, previousFrame, threshold) {
+      if (!previousFrame) return false;
+
+      let changedPixels = 0;
+      const pixelCount = currentFrame.length / 4;
+      for (let i = 0; i < currentFrame.length; i += 4) {
+        const diff = (
+          Math.abs(currentFrame[i] - previousFrame[i]) +
+          Math.abs(currentFrame[i + 1] - previousFrame[i + 1]) +
+          Math.abs(currentFrame[i + 2] - previousFrame[i + 2])
+        ) / 3;
+        if (diff >= threshold) changedPixels++;
+      }
+
+      return changedPixels >= Math.max(4, Math.ceil(pixelCount * 0.01));
+    }
+
     function drawLoop() {
       if (!streamActive) return;
 
@@ -201,35 +227,19 @@
       const lineBY = Math.floor(canvas.height * 0.85);
       const threshold = parseInt(sensitivityInput.value) || 25;
 
-      // Extract pixel row data for Line A and Line B (1 pixel high strip across width)
-      const frameA = ctx.getImageData(0, lineAY, canvas.width, 1).data;
-      const frameB = ctx.getImageData(0, lineBY, canvas.width, 1).data;
+      const frameA = readScanBand(lineAY);
+      const frameB = readScanBand(lineBY);
 
       // Auto-detection logic for Line A (Start)
-      if (!timeA && prevLineAData) {
-        let diffSum = 0;
-        for (let i = 0; i < frameA.length; i += 4) {
-          // Compare Red channel difference from previous frame
-          diffSum += Math.abs(frameA[i] - prevLineAData[i]);
-        }
-        let avgDiff = diffSum / (frameA.length / 4);
-        if (avgDiff > threshold) {
-          timeA = performance.now();
-        }
+      if (!timeA && hasMotion(frameA, prevLineAData, threshold)) {
+        timeA = performance.now();
       }
       prevLineAData = frameA;
 
       // Auto-detection logic for Line B (Finish)
-      if (timeA && !timeB && prevLineBData) {
-        let diffSum = 0;
-        for (let i = 0; i < frameB.length; i += 4) {
-          diffSum += Math.abs(frameB[i] - prevLineBData[i]);
-        }
-        let avgDiff = diffSum / (frameB.length / 4);
-        if (avgDiff > threshold) {
-          timeB = performance.now();
-          calculateSpeed();
-        }
+      if (timeA && !timeB && hasMotion(frameB, prevLineBData, threshold)) {
+        timeB = performance.now();
+        calculateSpeed();
       }
       prevLineBData = frameB;
 

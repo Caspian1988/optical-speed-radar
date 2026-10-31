@@ -11,7 +11,7 @@ Built with vanilla JavaScript and the HTML5 Canvas API—no heavy Python or exte
 
 Traditional speed radar uses radio waves, but this tool uses **Optical Speed Estimation**:
 1. **Calibration:** Two virtual scanlines (**Line A** and **Line B**) are placed on screen at a known physical distance apart (e.g., 20 feet).
-2. **Motion Detection:** The application monitors pixel-row data along the scanlines frame-by-frame. When an object crosses Line A, timestamp $t_1$ is recorded. When it crosses Line B, timestamp $t_2$ is recorded.
+2. **Motion Detection:** The application compares RGB values in a narrow band around each scanline frame-by-frame. When enough pixels change beyond the selected threshold, the crossing is recorded: Line A sets timestamp $t_1$, and Line B sets timestamp $t_2$.
 3. **Velocity Math:** 
    $$\text{Speed (FPS)} = \frac{\text{Distance}}{\Delta t}$$
    $$\text{Speed (MPH)} = \text{FPS} \times 0.681818$$
