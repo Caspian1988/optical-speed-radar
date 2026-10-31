@@ -197,8 +197,8 @@
       // 1. Draw video frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const lineAY = Math.floor(canvas.height * 0.35);
-      const lineBY = Math.floor(canvas.height * 0.70);
+      const lineAY = Math.floor(canvas.height * 0.15);
+      const lineBY = Math.floor(canvas.height * 0.85);
       const threshold = parseInt(sensitivityInput.value) || 25;
 
       // Extract pixel row data for Line A and Line B (1 pixel high strip across width)
