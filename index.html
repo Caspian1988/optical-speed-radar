@@ -3,29 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Optical Speed Radar - Auto Mode</title>
+  <title>⚡ OPTICAL SPEED RADAR | Tactical V2</title>
   <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --accent-red: #ef4444;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
       margin: 0;
-      padding: 20px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
     h1 {
-      color: #38bdf8;
-      font-size: 1.5rem;
-      margin-bottom: 5px;
+      color: var(--accent-blue);
+      font-size: 1.4rem;
+      margin: 0 0 4px 0;
+      letter-spacing: 1px;
     }
 
     .subtitle {
-      color: #94a3b8;
-      font-size: 0.85rem;
-      margin-bottom: 15px;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      margin-bottom: 12px;
     }
 
     .video-container {
@@ -36,6 +47,7 @@
       border-radius: 8px;
       overflow: hidden;
       background-color: #020617;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
 
     video { display: none; }
@@ -44,48 +56,72 @@
     .readout-card {
       width: 100%;
       max-width: 640px;
-      background-color: #1e293b;
+      background-color: var(--card-bg);
       border: 1px solid #334155;
       border-radius: 8px;
-      padding: 15px;
+      padding: 14px;
       box-sizing: border-box;
-      margin-top: 15px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .radar-stats {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 10px;
     }
 
     .speed-display {
-      font-size: 2rem;
-      font-weight: bold;
-      color: #4ade80;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      font-family: monospace;
     }
 
-    .config-group {
-      display: flex;
-      gap: 15px;
-      font-size: 0.85rem;
-      color: #94a3b8;
+    .status-badge {
+      font-size: 0.75rem;
+      color: var(--accent-blue);
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
     }
 
     .config-item {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
 
-    .config-item input {
+    .config-item label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .config-item input, .config-item select {
       background-color: #0f172a;
       border: 1px solid #334155;
-      color: #f8fafc;
-      padding: 6px 10px;
+      color: var(--text);
+      padding: 6px 8px;
       border-radius: 4px;
-      width: 70px;
-      font-size: 1rem;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      width: 100%;
     }
 
     .controls {
-      margin-top: 15px;
+      margin-top: 12px;
       width: 100%;
       max-width: 640px;
       display: flex;
@@ -94,7 +130,7 @@
 
     .btn {
       flex: 1;
-      padding: 15px;
+      padding: 14px;
       font-size: 1rem;
       font-weight: bold;
       border: none;
@@ -102,41 +138,71 @@
       cursor: pointer;
       color: #ffffff;
       background-color: #0284c7;
+      transition: background-color 0.2s;
     }
-    .btn-reset { background-color: #475569; flex: 0.4; }
+
+    .btn:hover { background-color: #0369a1; }
+    .btn-reset { background-color: #475569; flex: 0.35; }
+    .btn-reset:hover { background-color: #334155; }
+
+    .help-box {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: #64748b;
+      max-width: 640px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
 
-  <h1>OPTICAL SPEED RADAR</h1>
-  <div class="subtitle">Step 3: Auto-Motion Scanline Detection</div>
+  <h1>⚡ OPTICAL SPEED RADAR</h1>
+  <div class="subtitle">Bi-Directional Auto-Motion Speed Trap</div>
 
-  <video id="videoElement" autoplay playsinline></video>
+  <video id="videoElement" autoplay playsinline muted></video>
 
   <div class="video-container">
     <canvas id="radarCanvas"></canvas>
   </div>
 
   <div class="readout-card">
-    <div class="config-group">
-      <div class="config-item">
-        <label for="distInput">Dist (Ft):</label>
-        <input type="number" id="distInput" value="20" min="1">
+    <div class="radar-stats">
+      <div>
+        <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase;">Target Speed</div>
+        <div id="speedText" class="speed-display">0.0 MPH</div>
       </div>
-      <div class="config-item">
-        <label for="sensitivityInput">Threshold:</label>
-        <input type="number" id="sensitivityInput" value="25" min="5" max="100">
+      <div style="text-align: right;">
+        <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase;">Radar State</div>
+        <div id="statusText" class="status-badge">STANDBY</div>
       </div>
     </div>
-    <div>
-      <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Auto-Speed</div>
-      <div id="speedText" class="speed-display">0.0 MPH</div>
+
+    <div class="config-grid">
+      <div class="config-item">
+        <label for="trapMode">Traffic Flow</label>
+        <select id="trapMode">
+          <option value="horizontal" selected>Horizontal (Sidewalk)</option>
+          <option value="vertical">Vertical (Overpass)</option>
+        </select>
+      </div>
+      <div class="config-item">
+        <label for="distInput">Trap Dist (Ft)</label>
+        <input type="number" id="distInput" value="30" min="1" step="1">
+      </div>
+      <div class="config-item">
+        <label for="sensitivityInput">Sensitivity</label>
+        <input type="number" id="sensitivityInput" value="25" min="5" max="80">
+      </div>
     </div>
   </div>
 
   <div class="controls">
-    <button id="startCamBtn" class="btn">Start Auto-Radar Camera</button>
-    <button id="resetBtn" class="btn btn-reset" style="display:none;">Reset</button>
+    <button id="startCamBtn" class="btn">Start Radar Camera</button>
+    <button id="resetBtn" class="btn btn-reset">Force Reset</button>
+  </div>
+
+  <div class="help-box">
+    <strong>Tactical Calibration:</strong> <em>Trap Dist (Ft)</em> is the actual real-world distance between Gate A and Gate B on the asphalt (e.g. between two street light poles or cones), <u>not</u> your distance from the car. Keep the camera stationary for best results.
   </div>
 
   <script>
@@ -147,144 +213,276 @@
     const startCamBtn = document.getElementById('startCamBtn');
     const resetBtn = document.getElementById('resetBtn');
     const speedText = document.getElementById('speedText');
+    const statusText = document.getElementById('statusText');
     const distInput = document.getElementById('distInput');
     const sensitivityInput = document.getElementById('sensitivityInput');
+    const trapMode = document.getElementById('trapMode');
 
     let streamActive = false;
-    let timeA = null;
-    let timeB = null;
+    
+    // Gate Timing & State
+    let firstGate = null;  // 'A' or 'B'
+    let timeFirst = null;
+    let timeSecond = null;
+    let autoResetTimer = null;
+    const GATE_TIMEOUT_MS = 3000; // Reset if car doesn't complete trap in 3 seconds
 
-    // Previous frame pixel storage for motion comparison
-    let prevLineAData = null;
-    let prevLineBData = null;
+    // Frame Buffers for Gate A and B
+    let prevGateAData = null;
+    let prevGateBData = null;
+
+    // Web Audio Synthesizer for Radar Feedback
+    let audioCtx = null;
+    function beep(freq = 600, duration = 0.08) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
 
     startCamBtn.addEventListener('click', async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: 640, height: 480 }
+          video: {
+            facingMode: "environment",
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
         });
+        
         video.srcObject = stream;
-        video.play();
+        await video.play();
         streamActive = true;
         
         startCamBtn.style.display = 'none';
-        resetBtn.style.display = 'block';
 
-        video.addEventListener('loadedmetadata', () => {
+        const initCanvas = () => {
           canvas.width = video.videoWidth || 640;
           canvas.height = video.videoHeight || 480;
-          drawLoop();
-        });
+          requestAnimationFrame(drawLoop);
+        };
+
+        if (video.videoWidth > 0) {
+          initCanvas();
+        } else {
+          video.onloadedmetadata = initCanvas;
+        }
+
+        statusText.textContent = "ARMED // SCANNING";
+        statusText.style.color = "#38bdf8";
       } catch (err) {
-        alert("Camera error: " + err.message);
+        alert("Camera initialization error: " + err.message);
       }
     });
 
-    resetBtn.addEventListener('click', resetRadar);
+    resetBtn.addEventListener('click', () => resetRadar(true));
 
-    function resetRadar() {
-      timeA = null;
-      timeB = null;
-      prevLineAData = null;
-      prevLineBData = null;
-      speedText.textContent = "0.0 MPH";
-      speedText.style.color = "#4ade80";
+    function resetRadar(manual = false) {
+      if (autoResetTimer) clearTimeout(autoResetTimer);
+      autoResetTimer = null;
+      firstGate = null;
+      timeFirst = null;
+      timeSecond = null;
+      prevGateAData = null;
+      prevGateBData = null;
+
+      if (manual) {
+        speedText.textContent = "0.0 MPH";
+        speedText.style.color = "#4ade80";
+        statusText.textContent = "ARMED // SCANNING";
+        statusText.style.color = "#38bdf8";
+      }
     }
 
-    function readScanBand(lineY) {
-      const bandHeight = Math.min(5, canvas.height);
-      const bandY = Math.max(0, Math.min(
-        canvas.height - bandHeight,
-        lineY - Math.floor(bandHeight / 2)
-      ));
-      return ctx.getImageData(0, bandY, canvas.width, bandHeight).data;
+    // Read pixel band across scanline
+    function readBand(coord, isHorizontalLine) {
+      const bandThickness = 6;
+      let x, y, width, height;
+
+      if (isHorizontalLine) {
+        // Horizontal line: spanning entire canvas width
+        width = canvas.width;
+        height = bandThickness;
+        x = 0;
+        y = Math.max(0, Math.min(canvas.height - height, coord - Math.floor(height / 2)));
+      } else {
+        // Vertical line: spanning entire canvas height
+        width = bandThickness;
+        height = canvas.height;
+        x = Math.max(0, Math.min(canvas.width - width, coord - Math.floor(width / 2)));
+        y = 0;
+      }
+
+      return ctx.getImageData(x, y, width, height).data;
     }
 
-    function hasMotion(currentFrame, previousFrame, threshold) {
-      if (!previousFrame) return false;
+    // Fast pixel diff to check motion
+    function hasMotion(current, previous, threshold) {
+      if (!previous || !current) return false;
 
       let changedPixels = 0;
-      const pixelCount = currentFrame.length / 4;
-      for (let i = 0; i < currentFrame.length; i += 4) {
+      const totalPixels = current.length / 4;
+
+      for (let i = 0; i < current.length; i += 4) {
         const diff = (
-          Math.abs(currentFrame[i] - previousFrame[i]) +
-          Math.abs(currentFrame[i + 1] - previousFrame[i + 1]) +
-          Math.abs(currentFrame[i + 2] - previousFrame[i + 2])
+          Math.abs(current[i] - previous[i]) +
+          Math.abs(current[i + 1] - previous[i + 1]) +
+          Math.abs(current[i + 2] - previous[i + 2])
         ) / 3;
+
         if (diff >= threshold) changedPixels++;
       }
 
-      return changedPixels >= Math.max(4, Math.ceil(pixelCount * 0.01));
+      // Trigger if at least 4% of pixels in the band changed
+      return changedPixels >= Math.max(12, Math.floor(totalPixels * 0.04));
     }
 
     function drawLoop() {
       if (!streamActive) return;
 
-      // 1. Draw video frame
+      // 1. Draw current video frame to canvas
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const lineAY = Math.floor(canvas.height * 0.15);
-      const lineBY = Math.floor(canvas.height * 0.85);
+      const isVerticalLines = (trapMode.value === 'horizontal');
       const threshold = parseInt(sensitivityInput.value) || 25;
 
-      const frameA = readScanBand(lineAY);
-      const frameB = readScanBand(lineBY);
+      // Gate positions
+      const gateA = isVerticalLines ? Math.floor(canvas.width * 0.20) : Math.floor(canvas.height * 0.20);
+      const gateB = isVerticalLines ? Math.floor(canvas.width * 0.80) : Math.floor(canvas.height * 0.80);
 
-      // Auto-detection logic for Line A (Start)
-      if (!timeA && hasMotion(frameA, prevLineAData, threshold)) {
-        timeA = performance.now();
+      const frameA = readBand(gateA, !isVerticalLines);
+      const frameB = readBand(gateB, !isVerticalLines);
+
+      const motionA = hasMotion(frameA, prevGateAData, threshold);
+      const motionB = hasMotion(frameB, prevGateBData, threshold);
+
+      const now = performance.now();
+
+      // Timeout safety: if car tripped first gate but never hit second within 3s
+      if (firstGate && (now - timeFirst > GATE_TIMEOUT_MS)) {
+        statusText.textContent = "TIMEOUT // RE-ARMED";
+        statusText.style.color = "#ef4444";
+        resetRadar(false);
       }
-      prevLineAData = frameA;
 
-      // Auto-detection logic for Line B (Finish)
-      if (timeA && !timeB && hasMotion(frameB, prevLineBData, threshold)) {
-        timeB = performance.now();
-        calculateSpeed();
+      // Gate Trigger Logic (Supports Bi-directional motion)
+      if (!firstGate) {
+        if (motionA && !motionB) {
+          firstGate = 'A';
+          timeFirst = now;
+          beep(700, 0.06);
+          statusText.textContent = "GATE A TRIPPED";
+          statusText.style.color = "#38bdf8";
+        } else if (motionB && !motionA) {
+          firstGate = 'B';
+          timeFirst = now;
+          beep(700, 0.06);
+          statusText.textContent = "GATE B TRIPPED";
+          statusText.style.color = "#4ade80";
+        }
+      } else if (!timeSecond) {
+        const targetSecond = (firstGate === 'A') ? motionB : motionA;
+        if (targetSecond) {
+          timeSecond = now;
+          beep(1100, 0.12);
+          calculateSpeed();
+        }
       }
-      prevLineBData = frameB;
 
-      // Draw Line A (Cyan)
-      ctx.strokeStyle = timeA ? '#38bdf8' : 'rgba(56, 189, 248, 0.6)';
-      ctx.lineWidth = timeA ? 4 : 2;
-      ctx.beginPath(); ctx.moveTo(0, lineAY); ctx.lineTo(canvas.width, lineAY); ctx.stroke();
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillText(timeA ? 'LINE A [TRIGGERED]' : 'LINE A (START)', 15, lineAY - 8);
+      prevGateAData = frameA;
+      prevGateBData = frameB;
 
-      // Draw Line B (Green)
-      ctx.strokeStyle = timeB ? '#4ade80' : 'rgba(74, 222, 128, 0.6)';
-      ctx.lineWidth = timeB ? 4 : 2;
-      ctx.beginPath(); ctx.moveTo(0, lineBY); ctx.lineTo(canvas.width, lineBY); ctx.stroke();
-      ctx.fillStyle = '#4ade80';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillText(timeB ? 'LINE B [TRIGGERED]' : 'LINE B (FINISH)', 15, lineBY - 8);
+      // Render Visual Scanlines & HUD
+      drawGates(gateA, gateB, isVerticalLines);
 
       requestAnimationFrame(drawLoop);
     }
 
-    function calculateSpeed() {
-      const timeElapsedSeconds = (timeB - timeA) / 1000;
-      const distanceFeet = parseFloat(distInput.value) || 20;
+    function drawGates(posA, posB, isVertical) {
+      const activeA = (firstGate === 'A') || (firstGate === 'B' && timeSecond);
+      const activeB = (firstGate === 'B') || (firstGate === 'A' && timeSecond);
 
-      // Sanity Check 1: Minimum time threshold (must take at least 0.05 seconds)
-      if (timeElapsedSeconds < 0.05) {
+      ctx.lineWidth = 3;
+
+      // Gate A Line
+      ctx.strokeStyle = activeA ? '#38bdf8' : 'rgba(56, 189, 248, 0.6)';
+      ctx.beginPath();
+      if (isVertical) {
+        ctx.moveTo(posA, 0); ctx.lineTo(posA, canvas.height);
+      } else {
+        ctx.moveTo(0, posA); ctx.lineTo(canvas.width, posA);
+      }
+      ctx.stroke();
+
+      // Gate B Line
+      ctx.strokeStyle = activeB ? '#4ade80' : 'rgba(74, 222, 128, 0.6)';
+      ctx.beginPath();
+      if (isVertical) {
+        ctx.moveTo(posB, 0); ctx.lineTo(posB, canvas.height);
+      } else {
+        ctx.moveTo(0, posB); ctx.lineTo(canvas.width, posB);
+      }
+      ctx.stroke();
+
+      // Gate Labels
+      ctx.font = 'bold 13px monospace';
+      ctx.fillStyle = '#38bdf8';
+      if (isVertical) {
+        ctx.fillText(activeA ? 'GATE A [LOCKED]' : 'GATE A', posA + 6, 25);
+      } else {
+        ctx.fillText(activeA ? 'GATE A [LOCKED]' : 'GATE A', 15, posA - 8);
+      }
+
+      ctx.fillStyle = '#4ade80';
+      if (isVertical) {
+        ctx.fillText(activeB ? 'GATE B [LOCKED]' : 'GATE B', posB + 6, 25);
+      } else {
+        ctx.fillText(activeB ? 'GATE B [LOCKED]' : 'GATE B', 15, posB - 8);
+      }
+    }
+
+    function calculateSpeed() {
+      const elapsedSeconds = (timeSecond - timeFirst) / 1000;
+      const distanceFeet = parseFloat(distInput.value) || 30;
+
+      // Filter out simultaneous glitch triggers (< 0.08 sec)
+      if (elapsedSeconds < 0.08) {
         speedText.textContent = "GLITCH / TOO FAST";
         speedText.style.color = "#ef4444";
+        statusText.textContent = "INVALID PASS";
+        statusText.style.color = "#ef4444";
+        autoResetTimer = setTimeout(() => resetRadar(true), 2500);
         return;
       }
 
-      const fps = distanceFeet / timeElapsedSeconds;
+      const fps = distanceFeet / elapsedSeconds;
       const mph = (fps * 0.681818).toFixed(1);
 
-      // Sanity Check 2: Cap unrealistic speeds over 150 MPH
-      if (mph > 150) {
+      // Sanity cap over 160 MPH
+      if (mph > 160) {
         speedText.textContent = "OUT OF RANGE";
         speedText.style.color = "#ef4444";
-        return;
+      } else {
+        speedText.textContent = `${mph} MPH`;
+        speedText.style.color = "#4ade80";
+        statusText.textContent = `LOCKED // ${elapsedSeconds.toFixed(2)}s TRANSIT`;
+        statusText.style.color = "#4ade80";
       }
 
-      speedText.textContent = `${mph} MPH`;
-      speedText.style.color = "#4ade80";
+      // Auto re-arm after 3.5 seconds
+      autoResetTimer = setTimeout(() => {
+        resetRadar(true);
+      }, 3500);
     }
   </script>
 </body>
